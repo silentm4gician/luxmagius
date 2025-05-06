@@ -78,7 +78,7 @@ export function ClientGalleryView({ gallery }) {
                 }}
               >
                 <Download className="h-4 w-4 mr-2" />
-                Download {selectedImages.length} Selected
+                Descargar {selectedImages.length} Seleccionadas
               </Button>
             )}
           </div>
@@ -154,11 +154,9 @@ export function ClientGalleryView({ gallery }) {
               <div className="rounded-full bg-purple-100 p-3 dark:bg-purple-900">
                 <ImageIcon className="h-8 w-8 text-purple-600" />
               </div>
-              <h3 className="text-xl font-medium mt-2">
-                No images in this gallery
-              </h3>
+              <h3 className="text-xl font-medium mt-2">No hay imagenes</h3>
               <p className="text-muted-foreground mb-4">
-                The gallery owner hasn't added any images yet.
+                El propietario de la galeria aun no ha agregado ninguna imagen.
               </p>
             </div>
           </Card>
@@ -176,7 +174,7 @@ export function ClientGalleryView({ gallery }) {
               {viewImage?.type} ·{" "}
               {viewImage?.size
                 ? `${Math.round(viewImage.size / 1024)} KB`
-                : "Unknown size"}
+                : "Tamaño desconocido"}
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-center">
@@ -194,7 +192,7 @@ export function ClientGalleryView({ gallery }) {
               }
             >
               <Download className="h-4 w-4 mr-2" />
-              Download
+              Descargar
             </Button>
           </DialogFooter>
         </DialogContent>

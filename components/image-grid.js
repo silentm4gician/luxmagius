@@ -49,8 +49,8 @@ export function ImageGrid({
         </Button>
         <div className="text-sm text-muted-foreground">
           {selectedImages.length > 0
-            ? `${selectedImages.length} selected`
-            : `${images.length} images`}
+            ? `${selectedImages.length} seleccionadas`
+            : `${images.length} imagenes`}
         </div>
       </div>
 

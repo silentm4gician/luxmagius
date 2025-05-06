@@ -1,79 +1,87 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/auth-context"
-import { db } from "@/lib/firebase"
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
-import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function NewGallery() {
-  const { user } = useAuth()
-  const router = useRouter()
+  const { user } = useAuth();
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     password: "",
     isPasswordProtected: false,
-  })
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
+  });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSwitchChange = (checked) => {
     setFormData((prev) => ({
       ...prev,
       isPasswordProtected: checked,
       password: checked ? prev.password : "",
-    }))
-  }
+    }));
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError("")
+    e.preventDefault();
+    setError("");
 
     if (!formData.name.trim()) {
-      return setError("Gallery name is required")
+      return setError("Gallery name is required");
     }
 
     if (formData.isPasswordProtected && !formData.password.trim()) {
-      return setError("Password is required when protection is enabled")
+      return setError("Password is required when protection is enabled");
     }
 
-    setLoading(true)
+    setLoading(true);
 
     try {
       const galleryData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
-        password: formData.isPasswordProtected ? formData.password.trim() : null,
+        password: formData.isPasswordProtected
+          ? formData.password.trim()
+          : null,
         userId: user.uid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         imageCount: 0,
         images: [],
-      }
+      };
 
-      const docRef = await addDoc(collection(db, "galleries"), galleryData)
-      router.push(`/dashboard/galleries/${docRef.id}`)
+      const docRef = await addDoc(collection(db, "galleries"), galleryData);
+      router.push(`/dashboard/galleries/${docRef.id}`);
     } catch (error) {
-      console.error("Error creating gallery:", error)
-      setError("Failed to create gallery. Please try again.")
+      console.error("Error creating gallery:", error);
+      setError("Failed to create gallery. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="md:ml-64">
@@ -82,13 +90,15 @@ export default function NewGallery() {
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-3xl font-bold">Create New Gallery</h1>
+          <h1 className="text-3xl font-bold">Crear Nueva Galería</h1>
         </div>
 
         <Card className="max-w-2xl">
           <CardHeader>
-            <CardTitle>Gallery Details</CardTitle>
-            <CardDescription>Create a new gallery to share with your clients</CardDescription>
+            <CardTitle>Detalles de la Galería</CardTitle>
+            <CardDescription>
+              Crea una nueva galería para compartir con tus clientes
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {error && (
@@ -99,11 +109,11 @@ export default function NewGallery() {
             )}
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="name">Gallery Name</Label>
+                <Label htmlFor="name">Nombre de la Galería</Label>
                 <Input
                   id="name"
                   name="name"
-                  placeholder="e.g., Smith Wedding"
+                  placeholder="p. ej., Boda Smith"
                   value={formData.name}
                   onChange={handleChange}
                   required
@@ -111,11 +121,11 @@ export default function NewGallery() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description (Optional)</Label>
+                <Label htmlFor="description">Descripción (Opcional)</Label>
                 <Textarea
                   id="description"
                   name="description"
-                  placeholder="Add details about this gallery"
+                  placeholder="Agrega detalles sobre esta galería"
                   value={formData.description}
                   onChange={handleChange}
                   rows={3}
@@ -124,7 +134,9 @@ export default function NewGallery() {
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="isPasswordProtected">Password Protection</Label>
+                  <Label htmlFor="isPasswordProtected">
+                    Protección con Contraseña
+                  </Label>
                   <Switch
                     id="isPasswordProtected"
                     checked={formData.isPasswordProtected}
@@ -134,32 +146,43 @@ export default function NewGallery() {
 
                 {formData.isPasswordProtected && (
                   <div className="space-y-2">
-                    <Label htmlFor="password">Gallery Password</Label>
+                    <Label htmlFor="password">Contraseña de la Galería</Label>
                     <Input
                       id="password"
                       name="password"
                       type="password"
-                      placeholder="Enter a password"
+                      placeholder="Introduce una contraseña"
                       value={formData.password}
                       onChange={handleChange}
                     />
-                    <p className="text-xs text-muted-foreground">Clients will need this password to view the gallery</p>
+                    <p className="text-xs text-muted-foreground">
+                      Los clientes necesitarán esta contraseña para ver la
+                      galería
+                    </p>
                   </div>
                 )}
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button variant="outline" type="button" onClick={() => router.back()}>
-                  Cancel
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => router.back()}
+                >
+                  Cancelar
                 </Button>
-                <Button type="submit" className="bg-purple-600 hover:bg-purple-700" disabled={loading}>
+                <Button
+                  type="submit"
+                  className="bg-purple-600 hover:bg-purple-700"
+                  disabled={loading}
+                >
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating...
+                      Creando...
                     </>
                   ) : (
-                    "Create Gallery"
+                    "Crear Galería"
                   )}
                 </Button>
               </div>
@@ -168,5 +191,5 @@ export default function NewGallery() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

@@ -79,15 +79,15 @@ export default function PublicGallery({ params }) {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-background/80">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Gallery Not Found</CardTitle>
+            <CardTitle>Galería No Encontrada</CardTitle>
             <CardDescription>
-              The gallery you're looking for doesn't exist or has been removed.
+              La galería que estás buscando no existe o ha sido eliminada.
             </CardDescription>
           </CardHeader>
           <CardFooter>
             <Button onClick={() => router.push("/")}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
+              Volver al Inicio
             </Button>
           </CardFooter>
         </Card>
@@ -100,9 +100,9 @@ export default function PublicGallery({ params }) {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-background/80 p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Password Protected Gallery</CardTitle>
+            <CardTitle>Galería Protegida con Contraseña</CardTitle>
             <CardDescription>
-              Enter the password to view this gallery
+              Ingresa la contraseña para ver esta galería
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -110,11 +110,11 @@ export default function PublicGallery({ params }) {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                   <Lock className="h-4 w-4" />
-                  <span>This gallery is password protected</span>
+                  <span>Esta galería está protegida con contraseña</span>
                 </div>
                 <Input
                   type="password"
-                  placeholder="Enter password"
+                  placeholder="Ingresa la contraseña"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -124,7 +124,7 @@ export default function PublicGallery({ params }) {
                 type="submit"
                 className="w-full bg-purple-600 hover:bg-purple-700"
               >
-                Unlock Gallery
+                Desbloquear Galería
               </Button>
             </form>
           </CardContent>
