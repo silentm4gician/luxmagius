@@ -93,7 +93,7 @@ export function DashboardNav({ user, onLogout }) {
           <div className="h-8 w-8 rounded-full">
             <Aperture className="w-full h-full text-white border-2 rounded-full" />
           </div>
-          <h1 className="text-xl font-bold">PhotoFolio</h1>
+          <h1 className="text-xl font-bold">Mismagius</h1>
         </div>
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
@@ -121,7 +121,7 @@ export function DashboardNav({ user, onLogout }) {
             <div className="h-9 w-9 rounded-full">
               <Aperture className="w-full h-full text-white border-2 rounded-full" />
             </div>
-            <h1 className="text-xl font-bold">PhotoFolio</h1>
+            <h1 className="text-xl font-bold">Mismagius</h1>
           </div>
           <NavLinks />
         </div>

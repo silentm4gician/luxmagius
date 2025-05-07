@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Download, Grid, Columns, ImageIcon } from "lucide-react";
+import { Download, Grid, Columns, ImageIcon, Heart } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import getImageUrl from "@/hooks/useImageUrl";
 
-export function ClientGalleryView({ gallery }) {
+export function ClientGalleryView({ gallery, likedImages, onToggleLike, userEmail }) {
   const [viewImage, setViewImage] = useState(null);
   const [viewMode, setViewMode] = useState("grid"); // 'grid' or 'columns'
   const [selectedImages, setSelectedImages] = useState([]);
@@ -33,6 +33,10 @@ export function ClientGalleryView({ gallery }) {
     } else {
       setSelectedImages(gallery.images.map((_, index) => index));
     }
+  };
+
+  const handleLikeClick = (index) => {
+    onToggleLike(index);
   };
 
   return (
@@ -89,63 +93,77 @@ export function ClientGalleryView({ gallery }) {
         {gallery.images && gallery.images.length > 0 ? (
           viewMode === "grid" ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {gallery.images.map((image, index) => (
-                <Card
-                  key={index}
-                  className={`relative overflow-hidden cursor-pointer transition-all ${
-                    selectedImages.includes(index)
-                      ? "ring-2 ring-purple-600"
-                      : ""
-                  }`}
-                  onClick={() => toggleImageSelection(index)}
-                >
-                  <div className="aspect-square bg-muted">
-                    <img
-                      src={getImageUrl(image)}
-                      alt={image?.name || "Image"}
-                      className="w-full h-full object-cover"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setViewImage(image);
-                      }}
-                    />
-                    {selectedImages.includes(index) && (
-                      <div className="absolute top-2 right-2 h-5 w-5 bg-purple-600 rounded-full flex items-center justify-center text-white">
-                        ✓
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              ))}
+              {gallery.images.map((image, index) => {
+                const imageId = image.id || `image_${index}`;
+                const isLiked = likedImages.includes(imageId);
+                
+                return (
+                  <Card
+                    key={index}
+                    className="relative overflow-hidden group"
+                  >
+                    <div className="aspect-square bg-muted relative">
+                      <img
+                        src={getImageUrl(image)}
+                        alt={image?.name || "Image"}
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => setViewImage(image)}
+                      />
+                      <Button
+                        variant={image.likedBy?.includes(userEmail) ? "default" : "outline"}
+                        size="icon"
+                        className={`absolute top-2 right-2 h-8 w-8 rounded-full bg-white/80 hover:bg-white ${
+                          image.likedBy?.includes(userEmail) ? 'bg-purple-600 hover:bg-purple-700' : ''
+                        }`}
+                        onClick={() => handleLikeClick(index)}
+                      >
+                        <Heart className={`h-4 w-4 ${image.likedBy?.includes(userEmail) ? 'fill-current' : ''}`} />
+                      </Button>
+                      {image.likes > 0 && (
+                        <div className="absolute bottom-2 right-2 bg-black/60 text-white text-sm px-2 py-1 rounded-full">
+                          {image.likes} {image.likes === 1 ? 'like' : 'likes'}
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           ) : (
             <div className="columns-1 sm:columns-2 md:columns-3 gap-4 space-y-4">
-              {gallery.images.map((image, index) => (
-                <div
-                  key={index}
-                  className={`relative overflow-hidden break-inside-avoid cursor-pointer ${
-                    selectedImages.includes(index)
-                      ? "ring-2 ring-purple-600"
-                      : ""
-                  }`}
-                  onClick={() => toggleImageSelection(index)}
-                >
-                  <img
-                    src={getImageUrl(image)}
-                    alt={image?.name || "Image"}
-                    className="w-full h-auto"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setViewImage(image);
-                    }}
-                  />
-                  {selectedImages.includes(index) && (
-                    <div className="absolute top-2 right-2 h-5 w-5 bg-purple-600 rounded-full flex items-center justify-center text-white">
-                      ✓
-                    </div>
-                  )}
-                </div>
-              ))}
+              {gallery.images.map((image, index) => {
+                const imageId = image.id || `image_${index}`;
+                const isLiked = likedImages.includes(imageId);
+                
+                return (
+                  <div
+                    key={index}
+                    className="relative overflow-hidden break-inside-avoid"
+                  >
+                    <img
+                      src={getImageUrl(image)}
+                      alt={image?.name || "Image"}
+                      className="w-full h-auto cursor-pointer"
+                      onClick={() => setViewImage(image)}
+                    />
+                    <Button
+                      variant={image.likedBy?.includes(userEmail) ? "default" : "outline"}
+                      size="icon"
+                      className={`absolute top-2 right-2 h-8 w-8 rounded-full bg-white/80 hover:bg-white ${
+                        image.likedBy?.includes(userEmail) ? 'bg-purple-600 hover:bg-purple-700' : ''
+                      }`}
+                      onClick={() => handleLikeClick(index)}
+                    >
+                      <Heart className={`h-4 w-4 ${image.likedBy?.includes(userEmail) ? 'fill-current' : ''}`} />
+                    </Button>
+                    {image.likes > 0 && (
+                      <div className="absolute bottom-2 right-2 bg-black/60 text-white text-sm px-2 py-1 rounded-full">
+                        {image.likes} {image.likes === 1 ? 'like' : 'likes'}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )
         ) : (

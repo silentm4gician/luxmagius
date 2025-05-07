@@ -6,8 +6,8 @@ import { AuthProvider } from "@/lib/auth-context";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "PhotoPholio - Comparte fotos con tus clientes",
-  description: "A platform for photographers to share galleries with clients",
+  title: "Mismagius",
+  description: "La mejor plataforma web para compartir fotos con tus clientes",
 };
 
 export default function RootLayout({ children }) {

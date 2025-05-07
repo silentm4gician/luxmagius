@@ -10,7 +10,7 @@ export function HeroSection() {
       </h1>
       <p className="text-xl text-muted-foreground max-w-2xl mb-10">
         Crea hermosas galerias, sube imagenes directamente desde Google Drive y
-        compartelas directamente con tus clientes en un par de clicks.
+        compartelas con tus clientes en un par de clicks.
       </p>
       <div className="flex flex-col sm:flex-row gap-4">
         <Link href="/signup">
@@ -40,7 +40,7 @@ export function HeroSection() {
           </div>
         </div>
         <div className="absolute -bottom-4 -right-4 bg-purple-600 text-white px-6 py-3 rounded-lg shadow-lg">
-          Galerias Hermosas
+          Comparte tus galerias
         </div>
       </div>
     </div>

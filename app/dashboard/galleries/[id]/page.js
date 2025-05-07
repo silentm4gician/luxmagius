@@ -138,11 +138,14 @@ export default function GalleryDetail({ params }) {
       });
 
       // Update the local state
-      setGallery((prev) => ({
-        ...prev,
-        images: [...(prev.images || []), ...uploadedImages],
-        imageCount: (prev.imageCount || 0) + uploadedImages.length,
-      }));
+      setGallery((prev) => {
+        const currentImages = Array.isArray(prev.images) ? prev.images : [];
+        return {
+          ...prev,
+          images: [...currentImages, ...uploadedImages],
+          imageCount: (prev.imageCount || 0) + uploadedImages.length,
+        };
+      });
 
       // Reset the file input
       e.target.value = null;
@@ -179,11 +182,14 @@ export default function GalleryDetail({ params }) {
       });
 
       // Update the local state
-      setGallery((prev) => ({
-        ...prev,
-        images: [...(prev.images || []), ...uploadedImages],
-        imageCount: (prev.imageCount || 0) + uploadedImages.length,
-      }));
+      setGallery((prev) => {
+        const currentImages = Array.isArray(prev.images) ? prev.images : [];
+        return {
+          ...prev,
+          images: [...currentImages, ...uploadedImages],
+          imageCount: (prev.imageCount || 0) + uploadedImages.length,
+        };
+      });
     } catch (error) {
       console.error("Error adding Google Drive files:", error);
       setError("Failed to add images from Google Drive. Please try again.");
@@ -495,6 +501,66 @@ export default function GalleryDetail({ params }) {
                       <p>{gallery.password ? "Habilitada" : "Deshabilitada"}</p>
                     </div>
                   </div>
+                </div>
+
+                <div className="mt-6 pt-6 border-t">
+                  <h3 className="text-lg font-medium mb-2">
+                    Imagenes con Me Gusta
+                  </h3>
+                  {gallery.images &&
+                  gallery.images.some((img) => img.likes > 0) ? (
+                    <>
+                      <div className="space-y-2 mb-4">
+                        {gallery.images
+                          .filter((img) => img.likes > 0)
+                          .map((img, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center justify-between gap-2 p-2 border rounded-lg"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">{img.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  ({img.likes} likes)
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {img.likedBy
+                                    .map((likedBy) => likedBy)
+                                    .join(", ")}
+                                </span>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(img.name);
+                                }}
+                              >
+                                Copiar
+                              </Button>
+                            </div>
+                          ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            const likedImages = gallery.images
+                              .filter((img) => img.likes > 0)
+                              .map((img) => img.name)
+                              .join(", ");
+                            navigator.clipboard.writeText(likedImages);
+                          }}
+                        >
+                          Copiar Todos los Nombres
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No hay imagenes con Me Gusta todavia
+                    </p>
+                  )}
                 </div>
 
                 <div className="mt-6 pt-6 border-t">

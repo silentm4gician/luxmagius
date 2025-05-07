@@ -47,6 +47,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
+import getImageUrl from "@/hooks/useImageUrl";
 
 export default function Galleries() {
   const { user } = useAuth();
@@ -133,12 +134,14 @@ export default function Galleries() {
         ) : filteredGalleries.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filteredGalleries.map((gallery) => (
-              <Card key={gallery.id} className="overflow-hidden">
-                <CardHeader className="p-0">
-                  <div className="aspect-video bg-muted relative">
-                    {gallery.coverImage ? (
+              <Card key={gallery.id} className="overflow-hidden flex flex-col">
+                <CardHeader className="p-0 flex-shrink-0">
+                  <div className="h-[180px] bg-muted relative">
+                    {gallery.images.length > 0 ? (
                       <img
-                        src={gallery.coverImage || "/placeholder.svg"}
+                        src={
+                          getImageUrl(gallery.images[0]) || "/placeholder.svg"
+                        }
                         alt={gallery.name}
                         className="w-full h-full object-cover"
                       />
@@ -189,7 +192,7 @@ export default function Galleries() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="p-4">
+                <CardContent className="p-4 flex-1">
                   <CardTitle className="text-lg">{gallery.name}</CardTitle>
                   <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                     <ImageIcon className="h-4 w-4" />

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -16,6 +16,16 @@ import {
 } from "@/components/ui/card";
 import { Loader2, Lock, ArrowLeft } from "lucide-react";
 import { ClientGalleryView } from "@/components/client-gallery-view";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function PublicGallery({ params }) {
   const { id } = React.use(params);
@@ -25,6 +35,11 @@ export default function PublicGallery({ params }) {
   const [error, setError] = useState("");
   const [password, setPassword] = useState("");
   const [authenticated, setAuthenticated] = useState(false);
+  const [likedImages, setLikedImages] = useState([]);
+  const [email, setEmail] = useState("");
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [tempImageIndex, setTempImageIndex] = useState(null);
 
   useEffect(() => {
     const fetchGallery = async () => {
@@ -45,6 +60,18 @@ export default function PublicGallery({ params }) {
         if (!galleryData.password) {
           setAuthenticated(true);
         }
+
+        // Get stored email from localStorage
+        const storedEmail = localStorage.getItem("gallery_email");
+        if (storedEmail) {
+          setEmail(storedEmail);
+        }
+
+        // Initialize liked images from localStorage
+        const storedLikes = localStorage.getItem(`gallery_${id}_likes`);
+        if (storedLikes) {
+          setLikedImages(JSON.parse(storedLikes));
+        }
       } catch (error) {
         console.error("Error fetching gallery:", error);
         setError("Failed to load gallery");
@@ -63,6 +90,93 @@ export default function PublicGallery({ params }) {
       setAuthenticated(true);
     } else {
       setError("Incorrect password");
+    }
+  };
+
+  const handleToggleLike = async (imageIndex) => {
+    if (!email) {
+      setTempImageIndex(imageIndex);
+      setShowEmailDialog(true);
+      return;
+    }
+
+    const newLikedImages = [...likedImages];
+    const imageId = gallery.images[imageIndex].id || `image_${imageIndex}`;
+
+    if (newLikedImages.includes(imageId)) {
+      // Unlike
+      const index = newLikedImages.indexOf(imageId);
+      newLikedImages.splice(index, 1);
+
+      try {
+        const updatedImage = { ...gallery.images[imageIndex] };
+        updatedImage.likes = (updatedImage.likes || 0) - 1;
+
+        // Remove email from likedBy array
+        updatedImage.likedBy = (updatedImage.likedBy || []).filter(
+          (e) => e !== email
+        );
+
+        const updatedImages = [...gallery.images];
+        updatedImages[imageIndex] = updatedImage;
+
+        await updateDoc(doc(db, "galleries", id), {
+          images: updatedImages,
+        });
+
+        const updatedGallery = { ...gallery, images: updatedImages };
+        setGallery(updatedGallery);
+      } catch (error) {
+        console.error("Error updating likes:", error);
+      }
+    } else {
+      // Like
+      newLikedImages.push(imageId);
+
+      try {
+        const updatedImage = { ...gallery.images[imageIndex] };
+        updatedImage.likes = (updatedImage.likes || 0) + 1;
+
+        // Add email to likedBy array
+        updatedImage.likedBy = [...(updatedImage.likedBy || []), email];
+
+        const updatedImages = [...gallery.images];
+        updatedImages[imageIndex] = updatedImage;
+
+        await updateDoc(doc(db, "galleries", id), {
+          images: updatedImages,
+        });
+
+        const updatedGallery = { ...gallery, images: updatedImages };
+        setGallery(updatedGallery);
+      } catch (error) {
+        console.error("Error updating likes:", error);
+      }
+    }
+
+    setLikedImages(newLikedImages);
+    localStorage.setItem(`gallery_${id}_likes`, JSON.stringify(newLikedImages));
+  };
+
+  const handleEmailSubmit = (e) => {
+    e.preventDefault();
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setEmailError("Por favor ingresa un email válido");
+      return;
+    }
+
+    // Store email in localStorage
+    localStorage.setItem("gallery_email", email);
+    setEmailError("");
+    setShowEmailDialog(false);
+
+    // If there's a pending like, process it
+    if (tempImageIndex !== null) {
+      handleToggleLike(tempImageIndex);
+      setTempImageIndex(null);
     }
   };
 
@@ -133,5 +247,45 @@ export default function PublicGallery({ params }) {
     );
   }
 
-  return <ClientGalleryView gallery={gallery} />;
+  return (
+    <>
+      <ClientGalleryView
+        gallery={gallery}
+        likedImages={likedImages}
+        onToggleLike={handleToggleLike}
+        userEmail={email}
+      />
+      <AlertDialog
+        open={showEmailDialog}
+        onOpenChange={(open) => !open && setShowEmailDialog(false)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ingresa tu Email</AlertDialogTitle>
+            <AlertDialogDescription>
+              Para dar Me Gusta necesitamos tu email. Esto nos ayuda a recordar
+              tus Me Gusta cuando vuelvas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <form onSubmit={handleEmailSubmit}>
+            <div className="space-y-4 py-4">
+              <Input
+                type="email"
+                placeholder="tu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              {emailError && (
+                <p className="text-sm text-red-500">{emailError}</p>
+              )}
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel type="button">Cancelar</AlertDialogCancel>
+              <AlertDialogAction type="submit">Continuar</AlertDialogAction>
+            </AlertDialogFooter>
+          </form>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
 }

@@ -11,7 +11,7 @@ export default function Home() {
           <div className="size-10 rounded-full flex items-center justify-center">
             <Aperture className="w-full h-full text-white border-2 rounded-full" />
           </div>
-          <h1 className="text-xl font-bold">PhotoFolio</h1>
+          <h1 className="text-xl font-bold">Mismagius</h1>
         </div>
         <div className="flex items-center gap-4">
           <Link href="/login">

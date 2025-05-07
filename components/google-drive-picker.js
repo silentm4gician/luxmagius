@@ -60,8 +60,14 @@ export function GoogleDrivePicker({ onSelect, disabled }) {
   }, []);
 
   const createPicker = (token) => {
+    const view = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
+      .setIncludeFolders(true)
+      .setSelectFolderEnabled(true)
+      .setMimeTypes('image/png,image/jpeg,image/jpg,image/gif,image/webp');
+
     const picker = new window.google.picker.PickerBuilder()
-      .addView(window.google.picker.ViewId.DOCS_IMAGES)
+      .enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED)
+      .addView(view)
       .setOAuthToken(token)
       .setDeveloperKey(API_KEY)
       .setCallback(pickerCallback)
@@ -82,26 +88,56 @@ export function GoogleDrivePicker({ onSelect, disabled }) {
 
   const pickerCallback = async (data) => {
     if (data.action === window.google.picker.Action.PICKED) {
-      const selectedFiles = data.docs;
+      setLoading(true);
+      const selectedItems = data.docs;
+      let filesToProcess = [];
+
+      // Process each selected item (could be files or folders)
+      for (const item of selectedItems) {
+        if (item.mimeType === 'application/vnd.google-apps.folder') {
+          // If it's a folder, fetch all image files within it
+          try {
+            const response = await window.gapi.client.drive.files.list({
+              q: `'${item.id}' in parents and mimeType contains 'image/'`,
+              fields: 'files(id, name, mimeType, thumbnailLink, size, webContentLink)',
+              pageSize: 1000
+            });
+            
+            filesToProcess = [...filesToProcess, ...response.result.files];
+          } catch (error) {
+            console.error('Error fetching folder contents:', error);
+          }
+        } else {
+          // If it's a file, add it directly
+          filesToProcess.push(item);
+        }
+      }
 
       const fetchedFiles = await Promise.all(
-        selectedFiles.map(async (file) => {
-          const res = await window.gapi.client.drive.files.get({
-            fileId: file.id,
-            fields: "id,name,mimeType,thumbnailLink,size,webContentLink",
-          });
+        filesToProcess.map(async (file) => {
+          try {
+            const res = await window.gapi.client.drive.files.get({
+              fileId: file.id,
+              fields: "id,name,mimeType,thumbnailLink,size,webContentLink",
+            });
 
-          return {
-            id: file.id,
-            name: res.result.name,
-            mimeType: res.result.mimeType,
-            url: res.result.webContentLink || res.result.thumbnailLink,
-            sizeBytes: parseInt(res.result.size || "0", 10),
-          };
+            return {
+              id: file.id,
+              name: res.result.name,
+              mimeType: res.result.mimeType,
+              url: res.result.webContentLink || res.result.thumbnailLink,
+              sizeBytes: parseInt(res.result.size || "0", 10),
+            };
+          } catch (error) {
+            console.error('Error fetching file details:', error);
+            return null;
+          }
         })
       );
 
-      onSelect(fetchedFiles);
+      // Filter out any failed fetches
+      const validFiles = fetchedFiles.filter(file => file !== null);
+      onSelect(validFiles);
       setLoading(false);
     }
   };
