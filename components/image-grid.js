@@ -32,7 +32,7 @@ export function ImageGrid({
   };
 
   const selectAll = () => {
-    if (selectedImages.length === images.length) {
+    if (selectedImages.length > 0) {
       setSelectedImages([]);
     } else {
       setSelectedImages(images.map((_, index) => index));
@@ -43,9 +43,7 @@ export function ImageGrid({
     <div>
       <div className="flex justify-between mb-4">
         <Button variant="outline" size="sm" onClick={selectAll}>
-          {selectedImages.length === images.length
-            ? "Anular Seleccion"
-            : "Seleccionar Todas"}
+          {selectedImages.length > 0 ? "Anular Seleccion" : "Seleccionar Todas"}
         </Button>
         <div className="text-sm text-muted-foreground">
           {selectedImages.length > 0

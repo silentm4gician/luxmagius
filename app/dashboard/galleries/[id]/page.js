@@ -199,66 +199,256 @@ export default function GalleryDetail({ params }) {
   };
 
   const handleDeleteImage = async () => {
-    if (deleteImageIndex === null) return;
+    // If we're deleting a single image via the delete button on the image
+    if (deleteImageIndex !== null && !Array.isArray(deleteImageIndex)) {
+      try {
+        const updatedImages = [...gallery.images];
+        updatedImages.splice(deleteImageIndex, 1);
 
-    try {
-      const updatedImages = [...gallery.images];
-      updatedImages.splice(deleteImageIndex, 1);
+        // Update the gallery document
+        const galleryRef = doc(db, "galleries", id);
+        await updateDoc(galleryRef, {
+          images: updatedImages,
+          imageCount: increment(-1),
+          updatedAt: new Date(),
+        });
 
-      // Update the gallery document
-      const galleryRef = doc(db, "galleries", id);
-      await updateDoc(galleryRef, {
-        images: updatedImages,
-        imageCount: increment(-1),
-        updatedAt: new Date(),
-      });
+        // Update the local state
+        setGallery((prev) => ({
+          ...prev,
+          images: updatedImages,
+          imageCount: prev.imageCount - 1,
+        }));
 
-      // Update the local state
-      setGallery((prev) => ({
-        ...prev,
-        images: updatedImages,
-        imageCount: prev.imageCount - 1,
-      }));
-
-      // Reset selected images if needed
-      if (selectedImages.includes(deleteImageIndex)) {
-        setSelectedImages(
-          selectedImages.filter((index) => index !== deleteImageIndex)
-        );
+        // Reset selected images if needed
+        if (selectedImages.includes(deleteImageIndex)) {
+          setSelectedImages(
+            selectedImages.filter((index) => index !== deleteImageIndex)
+          );
+        }
+      } catch (error) {
+        console.error("Error deleting image:", error);
+        setError("Failed to delete image. Please try again.");
+      } finally {
+        setDeleteImageIndex(null);
       }
-    } catch (error) {
-      console.error("Error deleting image:", error);
-      setError("Failed to delete image. Please try again.");
-    } finally {
-      setDeleteImageIndex(null);
+    }
+    // If we're deleting multiple selected images
+    else if (Array.isArray(deleteImageIndex) && deleteImageIndex.length > 0) {
+      try {
+        // Sort indices in descending order to avoid index shifting issues when removing items
+        const indicesToDelete = [...deleteImageIndex].sort((a, b) => b - a);
+        const updatedImages = [...gallery.images];
+
+        // Remove images from the array
+        for (const index of indicesToDelete) {
+          updatedImages.splice(index, 1);
+        }
+
+        // Update the gallery document
+        const galleryRef = doc(db, "galleries", id);
+        await updateDoc(galleryRef, {
+          images: updatedImages,
+          imageCount: increment(-indicesToDelete.length),
+          updatedAt: new Date(),
+        });
+
+        // Update the local state
+        setGallery((prev) => ({
+          ...prev,
+          images: updatedImages,
+          imageCount: prev.imageCount - indicesToDelete.length,
+        }));
+
+        // Clear selected images
+        setSelectedImages([]);
+      } catch (error) {
+        console.error("Error deleting images:", error);
+        setError("Failed to delete images. Please try again.");
+      } finally {
+        setDeleteImageIndex(null);
+      }
     }
   };
 
-  const handleDownloadImage = async (image) => {
-    try {
-      const isGoogleDrive = image.url.includes("drive.google.com");
+  const handleDownloadImage = async (imageOrImages) => {
+    // If we're downloading a single image
+    if (!Array.isArray(imageOrImages)) {
+      const image = imageOrImages;
+      try {
+        const isGoogleDrive = image.url.includes("drive.google.com");
 
-      if (isGoogleDrive && image.driveId) {
-        // Abrir el link directo a la descarga desde Google Drive
-        const downloadUrl = `https://drive.google.com/uc?export=download&id=${image.driveId}`;
-        window.open(downloadUrl, "_blank");
-      } else {
-        // Descargar desde Firebase u otros orígenes permitidos por fetch
-        const response = await fetch(image.url);
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
+        if (isGoogleDrive && image.driveId) {
+          // Abrir el link directo a la descarga desde Google Drive
+          const downloadUrl = `https://drive.google.com/uc?export=download&id=${image.driveId}`;
+          window.open(downloadUrl, "_blank");
+        } else {
+          // Descargar desde Firebase u otros orígenes permitidos por fetch
+          const response = await fetch(image.url);
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
 
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = image.name || "image";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = image.name || "image";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        }
+      } catch (err) {
+        console.error("Failed to download image", err);
+        setError("Failed to download image.");
       }
-    } catch (err) {
-      console.error("Failed to download image", err);
-      setError("Failed to download image.");
+    }
+    // If we're downloading multiple images, download them individually instead of as a ZIP
+    else if (Array.isArray(imageOrImages) && imageOrImages.length > 0) {
+      try {
+        setError("");
+        // Show loading state
+        const downloadButton = document.getElementById(
+          "download-selected-button"
+        );
+        if (downloadButton) {
+          downloadButton.disabled = true;
+          downloadButton.innerHTML =
+            '<span class="animate-spin mr-2">↻</span> Descargando...';
+        }
+
+        // Create a single popup notification for Google Drive images
+        const googleDriveImages = imageOrImages.filter(
+          (img) => img.url.includes("drive.google.com") && img.driveId
+        );
+        const regularImages = imageOrImages.filter(
+          (img) => !(img.url.includes("drive.google.com") && img.driveId)
+        );
+
+        // First handle Google Drive images with a notification
+        if (googleDriveImages.length > 0) {
+          // Create a notification for Google Drive images
+          setError(
+            `${googleDriveImages.length} imágenes de Google Drive se abrirán en pestañas separadas. Por favor, permita las ventanas emergentes.`
+          );
+
+          // Wait a moment for the user to see the notification
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+
+          // Open Google Drive images with a larger delay between them
+          for (let i = 0; i < googleDriveImages.length; i++) {
+            const image = googleDriveImages[i];
+            const downloadUrl = `https://drive.google.com/uc?export=download&id=${image.driveId}`;
+
+            // Create a temporary button that the user can click to download
+            const tempButton = document.createElement("button");
+            tempButton.textContent = `Descargar ${
+              image.name || `imagen ${i + 1}`
+            }`;
+            tempButton.className =
+              "bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded mb-2 mr-2";
+            tempButton.onclick = () => window.open(downloadUrl, "_blank");
+
+            // Add the button to a container
+            let containerElement;
+            if (!document.getElementById("temp-download-buttons")) {
+              // Create a new container if it doesn't exist
+              const container = document.createElement("div");
+              container.id = "temp-download-buttons";
+              container.className =
+                "fixed top-4 right-4 z-50 bg-background p-4 border rounded-lg shadow-lg";
+
+              const header = document.createElement("h3");
+              header.textContent = "Descargas de Google Drive";
+              header.className = "font-bold mb-2";
+              container.appendChild(header);
+
+              const closeBtn = document.createElement("button");
+              closeBtn.textContent = "X";
+              closeBtn.className = "absolute top-2 right-2 text-sm";
+              closeBtn.onclick = () =>
+                document.getElementById("temp-download-buttons").remove();
+              container.appendChild(closeBtn);
+
+              document.body.appendChild(container);
+              containerElement = container;
+            } else {
+              containerElement = document.getElementById(
+                "temp-download-buttons"
+              );
+            }
+
+            containerElement.appendChild(tempButton);
+          }
+        }
+
+        // Then handle regular images
+        for (let i = 0; i < regularImages.length; i++) {
+          const image = regularImages[i];
+
+          try {
+            // For other sources, download using fetch
+            const response = await fetch(image.url);
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = image.name || `image-${i + 1}`;
+
+            // Use click() method instead of appending to the document
+            // This is less likely to trigger popup blockers
+            link.style.display = "none";
+            document.body.appendChild(link);
+            link.click();
+
+            // Small delay before removing the link
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            // Add a small delay between downloads to prevent browser blocking
+            if (i < regularImages.length - 1) {
+              await new Promise((resolve) => setTimeout(resolve, 1500));
+            }
+
+            setError("");
+          } catch (error) {
+            console.error(`Error downloading image ${image.name || i}:`, error);
+
+            // Add to the notification panel instead of opening a new tab
+            setError(
+              (prev) =>
+                prev +
+                `\nError al descargar ${image.name || `imagen ${i + 1}`}: ${
+                  error.message
+                }`
+            );
+          }
+        }
+
+        // Reset button state
+        if (downloadButton) {
+          downloadButton.disabled = false;
+          downloadButton.innerHTML =
+            '<svg class="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Descargar Seleccionados';
+        }
+      } catch (err) {
+        console.error("Failed to download images:", err);
+        setError("Failed to download images. Please try again.");
+
+        // Reset button state
+        const downloadButton = document.getElementById(
+          "download-selected-button"
+        );
+        if (downloadButton) {
+          downloadButton.disabled = false;
+          downloadButton.innerHTML =
+            '<svg class="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Descargar Seleccionados';
+        }
+      }
     }
   };
 
@@ -319,7 +509,7 @@ export default function GalleryDetail({ params }) {
             </Button>
             <Button
               onClick={() => router.push(`/dashboard/galleries/${id}/edit`)}
-              className="gap-2"
+              className="bg-purple-600 hover:bg-purple-700"
             >
               <Edit className="h-4 w-4" />
               Editar Galeria
@@ -425,17 +615,18 @@ export default function GalleryDetail({ params }) {
                       <Button
                         variant="outline"
                         className="text-red-600"
-                        onClick={() => setDeleteImageIndex(selectedImages[0])}
+                        onClick={() => setDeleteImageIndex(selectedImages)}
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Borrar Seleccionados
                       </Button>
                       <Button
                         variant="outline"
+                        id="download-selected-button"
                         onClick={async () => {
-                          for (const index of selectedImages) {
-                            await handleDownloadImage(gallery.images[index]);
-                          }
+                          await handleDownloadImage(
+                            selectedImages.map((index) => gallery.images[index])
+                          );
                         }}
                       >
                         <Download className="h-4 w-4 mr-2" />

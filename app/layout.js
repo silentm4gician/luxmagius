@@ -8,6 +8,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata = {
   title: "Mismagius",
   description: "La mejor plataforma web para compartir fotos con tus clientes",
+  icons: {
+    icon: "/mismagiusLogo.png",
+  },
 };
 
 export default function RootLayout({ children }) {

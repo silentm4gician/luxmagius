@@ -14,6 +14,7 @@ import {
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import Image from "next/image";
 
 export function DashboardNav({ user, onLogout }) {
   const pathname = usePathname();
@@ -90,8 +91,9 @@ export function DashboardNav({ user, onLogout }) {
       {/* Mobile Navigation */}
       <div className="md:hidden flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full">
-            <Aperture className="w-full h-full text-white border-2 rounded-full" />
+          <div className="size-12 rounded-full">
+            {/* <Aperture className="w-full h-full text-white border-2 rounded-full" /> */}
+            <Image src="/mismagiusLogo.png" alt="Logo" width={50} height={50} />
           </div>
           <h1 className="text-xl font-bold">Mismagius</h1>
         </div>
@@ -118,8 +120,14 @@ export function DashboardNav({ user, onLogout }) {
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r">
         <div className="flex flex-col h-full py-4">
           <div className="px-4 py-2 flex items-center gap-2 mb-6">
-            <div className="h-9 w-9 rounded-full">
-              <Aperture className="w-full h-full text-white border-2 rounded-full" />
+            <div className="size-14 rounded-full">
+              {/* <Aperture className="w-full h-full text-white border-2 rounded-full" /> */}
+              <Image
+                src="/mismagiusLogo.png"
+                alt="Logo"
+                width={80}
+                height={80}
+              />
             </div>
             <h1 className="text-xl font-bold">Mismagius</h1>
           </div>
