@@ -9,7 +9,7 @@ import {
   Settings,
   LogOut,
   Menu,
-  Aperture,
+  Briefcase,
 } from "lucide-react";
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -34,6 +34,12 @@ export function DashboardNav({ user, onLogout }) {
       active:
         pathname === "/dashboard/galleries" ||
         pathname.startsWith("/dashboard/galleries/"),
+    },
+    {
+      href: "/dashboard/portfolio",
+      label: "Portafolio",
+      icon: Briefcase,
+      active: pathname === "/dashboard/portfolio",
     },
     {
       href: "/dashboard/settings",
@@ -92,10 +98,9 @@ export function DashboardNav({ user, onLogout }) {
       <div className="md:hidden flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2">
           <div className="size-12 rounded-full">
-            {/* <Aperture className="w-full h-full text-white border-2 rounded-full" /> */}
             <Image src="/mismagiusLogo.png" alt="Logo" width={50} height={50} />
           </div>
-          <h1 className="text-xl font-bold">Mismagius</h1>
+          <h1 className="text-xl font-bold">Luxmagius</h1>
         </div>
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
@@ -121,7 +126,6 @@ export function DashboardNav({ user, onLogout }) {
         <div className="flex flex-col h-full py-4">
           <div className="px-4 py-2 flex items-center gap-2 mb-6">
             <div className="size-14 rounded-full">
-              {/* <Aperture className="w-full h-full text-white border-2 rounded-full" /> */}
               <Image
                 src="/mismagiusLogo.png"
                 alt="Logo"
@@ -129,7 +133,7 @@ export function DashboardNav({ user, onLogout }) {
                 height={80}
               />
             </div>
-            <h1 className="text-xl font-bold">Mismagius</h1>
+            <h1 className="text-xl font-bold">Luxmagius</h1>
           </div>
           <NavLinks />
         </div>

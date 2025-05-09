@@ -3,7 +3,15 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,7 +22,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Loader2, Lock, ArrowLeft } from "lucide-react";
+import { Loader2, Lock, ArrowLeft, Briefcase } from "lucide-react";
 import { ClientGalleryView } from "@/components/client-gallery-view";
 import {
   AlertDialog,
@@ -26,11 +34,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import Link from "next/link";
 
 export default function PublicGallery({ params }) {
   const { id } = React.use(params);
   const router = useRouter();
   const [gallery, setGallery] = useState(null);
+  const [portfolio, setPortfolio] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [password, setPassword] = useState("");
@@ -42,7 +52,7 @@ export default function PublicGallery({ params }) {
   const [tempImageIndex, setTempImageIndex] = useState(null);
 
   useEffect(() => {
-    const fetchGallery = async () => {
+    const fetchGalleryAndPortfolio = async () => {
       if (!id) return;
 
       try {
@@ -55,6 +65,22 @@ export default function PublicGallery({ params }) {
 
         const galleryData = { id: galleryDoc.id, ...galleryDoc.data() };
         setGallery(galleryData);
+
+        // Fetch photographer's portfolio
+        const portfolioQuery = query(
+          collection(db, "portfolios"),
+          where("userId", "==", galleryData.userId),
+          where("isPublic", "==", true)
+        );
+        const portfolioSnapshot = await getDocs(portfolioQuery);
+
+        if (!portfolioSnapshot.empty) {
+          const portfolioData = {
+            id: portfolioSnapshot.docs[0].id,
+            ...portfolioSnapshot.docs[0].data(),
+          };
+          setPortfolio(portfolioData);
+        }
 
         // If no password is required, set authenticated to true
         if (!galleryData.password) {
@@ -80,7 +106,7 @@ export default function PublicGallery({ params }) {
       }
     };
 
-    fetchGallery();
+    fetchGalleryAndPortfolio();
   }, [id]);
 
   const handlePasswordSubmit = (e) => {
@@ -242,6 +268,21 @@ export default function PublicGallery({ params }) {
               </Button>
             </form>
           </CardContent>
+          {portfolio && (
+            <CardFooter className="flex flex-col items-center gap-4">
+              <div className="w-full border-t pt-4">
+                <p className="text-sm text-center text-muted-foreground mb-2">
+                  Mientras tanto, puedes ver más trabajos del fotógrafo
+                </p>
+                <Link href={`/p/${portfolio.id}`}>
+                  <Button variant="outline" className="w-full">
+                    <Briefcase className="h-4 w-4 mr-2" />
+                    Ver Portafolio
+                  </Button>
+                </Link>
+              </div>
+            </CardFooter>
+          )}
         </Card>
       </div>
     );
@@ -254,6 +295,7 @@ export default function PublicGallery({ params }) {
         likedImages={likedImages}
         onToggleLike={handleToggleLike}
         userEmail={email}
+        portfolio={portfolio}
       />
       <AlertDialog
         open={showEmailDialog}

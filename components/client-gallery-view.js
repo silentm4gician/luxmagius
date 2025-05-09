@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Info,
   Camera,
+  Briefcase,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
@@ -26,12 +27,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import getImageUrl from "@/hooks/useImageUrl";
+import Link from "next/link";
 
 export function ClientGalleryView({
   gallery,
   likedImages,
   onToggleLike,
   userEmail,
+  portfolio,
 }) {
   const [viewImage, setViewImage] = useState(null);
   const [viewIndex, setViewIndex] = useState(null);
@@ -293,14 +296,26 @@ export function ClientGalleryView({
                   {gallery.description}
                 </p>
               )}
-              {gallery.images && gallery.images.length > 0 && (
-                <div className="mt-4 flex items-center">
+              <div className="mt-4 flex items-center gap-3 flex-wrap">
+                {gallery.images && gallery.images.length > 0 && (
                   <Badge className="bg-black/50 text-white border-purple-500 backdrop-blur-sm">
                     {gallery.images.length}{" "}
                     {gallery.images.length === 1 ? "imagen" : "imágenes"}
                   </Badge>
-                </div>
-              )}
+                )}
+                {portfolio && (
+                  <Link href={`/p/${portfolio.id}`} className="inline-block">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="bg-black/50 text-white border-purple-500 hover:bg-black/70 backdrop-blur-sm"
+                    >
+                      <Briefcase className="h-4 w-4 mr-2" />
+                      Ver Portafolio
+                    </Button>
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
         </div>

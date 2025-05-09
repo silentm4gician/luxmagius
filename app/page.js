@@ -13,7 +13,7 @@ export default function Home() {
             {/* <Aperture className="w-full h-full text-white border-2 rounded-full" /> */}
             <Image src="/mismagiusLogo.png" alt="Logo" width={100} height={100} />
           </div>
-          <h1 className="text-xl font-bold">Mismagius</h1>
+          <h1 className="text-xl font-bold">Luxmagius</h1>
         </div>
         <div className="flex items-center gap-4">
           <Link href="/login">

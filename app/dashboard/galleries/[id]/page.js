@@ -36,6 +36,17 @@ import {
   Grid,
   Download,
   AlertCircle,
+  Check,
+  Eye,
+  Heart,
+  Share2,
+  Copy,
+  SortAsc,
+  X,
+  CheckCircle,
+  Clock,
+  FileText,
+  Users,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,6 +64,22 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import getImageUrl from "@/hooks/useImageUrl";
 
 export default function GalleryDetail({ params }) {
   const { id } = React.use(params);
@@ -61,9 +88,16 @@ export default function GalleryDetail({ params }) {
   const [gallery, setGallery] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [selectedImages, setSelectedImages] = useState([]);
   const [deleteImageIndex, setDeleteImageIndex] = useState(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [namesCopied, setNamesCopied] = useState(false);
+  const [sortBy, setSortBy] = useState("newest"); // newest, oldest, name, likes
+  const [filterLiked, setFilterLiked] = useState(false);
+  const [uploadCount, setUploadCount] = useState({ total: 0, current: 0 });
 
   useEffect(() => {
     const fetchGallery = async () => {
@@ -85,10 +119,15 @@ export default function GalleryDetail({ params }) {
           return;
         }
 
+        // Ensure images array exists
+        if (!galleryData.images) {
+          galleryData.images = [];
+        }
+
         setGallery(galleryData);
       } catch (error) {
         console.error("Error fetching gallery:", error);
-        setError("Failed to load gallery details");
+        setError("Error al cargar los detalles de la galería");
       } finally {
         setLoading(false);
       }
@@ -103,11 +142,16 @@ export default function GalleryDetail({ params }) {
 
     setUploading(true);
     setError("");
+    setUploadProgress(0);
+    setUploadCount({ total: files.length, current: 0 });
 
     try {
       const uploadedImages = [];
 
-      for (const file of files) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        setUploadCount((prev) => ({ ...prev, current: i + 1 }));
+
         // Create a reference to the storage location
         const storageRef = ref(
           storage,
@@ -126,7 +170,12 @@ export default function GalleryDetail({ params }) {
           type: file.type,
           size: file.size,
           uploadedAt: new Date().toISOString(),
+          likes: 0,
+          likedBy: [],
         });
+
+        // Update progress
+        setUploadProgress(Math.round(((i + 1) / files.length) * 100));
       }
 
       // Update the gallery document with the new images
@@ -147,13 +196,18 @@ export default function GalleryDetail({ params }) {
         };
       });
 
+      setSuccess(`${uploadedImages.length} imágenes subidas correctamente`);
+      setTimeout(() => setSuccess(""), 3000);
+
       // Reset the file input
       e.target.value = null;
     } catch (error) {
       console.error("Error uploading files:", error);
-      setError("Failed to upload images. Please try again.");
+      setError("Error al subir imágenes. Por favor, inténtalo de nuevo.");
     } finally {
       setUploading(false);
+      setUploadProgress(0);
+      setUploadCount({ total: 0, current: 0 });
     }
   };
 
@@ -162,23 +216,37 @@ export default function GalleryDetail({ params }) {
 
     setUploading(true);
     setError("");
+    setUploadProgress(0);
+    setUploadCount({ total: files.length, current: 0 });
 
     try {
-      const uploadedImages = files.map((file) => ({
-        url: file.url,
-        name: file.name,
-        type: file.mimeType,
-        size: file.sizeBytes,
-        driveId: file.id,
-        uploadedAt: new Date().toISOString(),
-      }));
+      const uploadedImages = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        setUploadCount((prev) => ({ ...prev, current: i + 1 }));
+
+        uploadedImages.push({
+          url: file.url,
+          name: file.name,
+          type: file.mimeType,
+          size: file.sizeBytes,
+          driveId: file.id,
+          uploadedAt: new Date().toISOString(),
+          likes: 0,
+          likedBy: [],
+        });
+
+        // Update progress
+        setUploadProgress(Math.round(((i + 1) / files.length) * 100));
+      }
 
       // Update the gallery document with the new images
       const galleryRef = doc(db, "galleries", id);
       await updateDoc(galleryRef, {
         images: arrayUnion(...uploadedImages),
         imageCount: increment(uploadedImages.length),
-        updatedAt: new Date(),
+        updatedAt: serverTimestamp(),
       });
 
       // Update the local state
@@ -190,11 +258,20 @@ export default function GalleryDetail({ params }) {
           imageCount: (prev.imageCount || 0) + uploadedImages.length,
         };
       });
+
+      setSuccess(
+        `${uploadedImages.length} imágenes de Google Drive añadidas correctamente`
+      );
+      setTimeout(() => setSuccess(""), 3000);
     } catch (error) {
       console.error("Error adding Google Drive files:", error);
-      setError("Failed to add images from Google Drive. Please try again.");
+      setError(
+        "Error al añadir imágenes desde Google Drive. Por favor, inténtalo de nuevo."
+      );
     } finally {
       setUploading(false);
+      setUploadProgress(0);
+      setUploadCount({ total: 0, current: 0 });
     }
   };
 
@@ -210,7 +287,7 @@ export default function GalleryDetail({ params }) {
         await updateDoc(galleryRef, {
           images: updatedImages,
           imageCount: increment(-1),
-          updatedAt: new Date(),
+          updatedAt: serverTimestamp(),
         });
 
         // Update the local state
@@ -226,9 +303,12 @@ export default function GalleryDetail({ params }) {
             selectedImages.filter((index) => index !== deleteImageIndex)
           );
         }
+
+        setSuccess("Imagen eliminada correctamente");
+        setTimeout(() => setSuccess(""), 3000);
       } catch (error) {
         console.error("Error deleting image:", error);
-        setError("Failed to delete image. Please try again.");
+        setError("Error al eliminar la imagen. Por favor, inténtalo de nuevo.");
       } finally {
         setDeleteImageIndex(null);
       }
@@ -250,7 +330,7 @@ export default function GalleryDetail({ params }) {
         await updateDoc(galleryRef, {
           images: updatedImages,
           imageCount: increment(-indicesToDelete.length),
-          updatedAt: new Date(),
+          updatedAt: serverTimestamp(),
         });
 
         // Update the local state
@@ -262,9 +342,16 @@ export default function GalleryDetail({ params }) {
 
         // Clear selected images
         setSelectedImages([]);
+
+        setSuccess(
+          `${indicesToDelete.length} imágenes eliminadas correctamente`
+        );
+        setTimeout(() => setSuccess(""), 3000);
       } catch (error) {
         console.error("Error deleting images:", error);
-        setError("Failed to delete images. Please try again.");
+        setError(
+          "Error al eliminar las imágenes. Por favor, inténtalo de nuevo."
+        );
       } finally {
         setDeleteImageIndex(null);
       }
@@ -279,11 +366,11 @@ export default function GalleryDetail({ params }) {
         const isGoogleDrive = image.url.includes("drive.google.com");
 
         if (isGoogleDrive && image.driveId) {
-          // Abrir el link directo a la descarga desde Google Drive
+          // Open direct download link from Google Drive
           const downloadUrl = `https://drive.google.com/uc?export=download&id=${image.driveId}`;
           window.open(downloadUrl, "_blank");
         } else {
-          // Descargar desde Firebase u otros orígenes permitidos por fetch
+          // Download from Firebase or other sources allowed by fetch
           const response = await fetch(image.url);
           const blob = await response.blob();
           const url = window.URL.createObjectURL(blob);
@@ -298,7 +385,7 @@ export default function GalleryDetail({ params }) {
         }
       } catch (err) {
         console.error("Failed to download image", err);
-        setError("Failed to download image.");
+        setError("Error al descargar la imagen.");
       }
     }
     // If we're downloading multiple images, download them individually instead of as a ZIP
@@ -433,11 +520,13 @@ export default function GalleryDetail({ params }) {
         if (downloadButton) {
           downloadButton.disabled = false;
           downloadButton.innerHTML =
-            '<svg class="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Descargar Seleccionados';
+            '<svg class="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Descargar Seleccionados';
         }
       } catch (err) {
         console.error("Failed to download images:", err);
-        setError("Failed to download images. Please try again.");
+        setError(
+          "Error al descargar las imágenes. Por favor, inténtalo de nuevo."
+        );
 
         // Reset button state
         const downloadButton = document.getElementById(
@@ -446,7 +535,7 @@ export default function GalleryDetail({ params }) {
         if (downloadButton) {
           downloadButton.disabled = false;
           downloadButton.innerHTML =
-            '<svg class="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Descargar Seleccionados';
+            '<svg class="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Descargar Seleccionados';
         }
       }
     }
@@ -455,12 +544,87 @@ export default function GalleryDetail({ params }) {
   const copyGalleryLink = () => {
     const link = `${window.location.origin}/g/${id}`;
     navigator.clipboard.writeText(link);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  const copyLikedImageNames = () => {
+    const likedImages = gallery.images
+      .filter((img) => img.likes > 0)
+      .map((img) => img.name)
+      .join(", ");
+    navigator.clipboard.writeText(likedImages);
+    setNamesCopied(true);
+    setTimeout(() => setNamesCopied(false), 2000);
+  };
+
+  // Format date
+  const formatDate = (timestamp) => {
+    if (!timestamp) return "Sin fecha";
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return new Intl.DateTimeFormat("es-ES", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(date);
+    } catch (e) {
+      return "Fecha inválida";
+    }
+  };
+
+  // Get sorted and filtered images
+  const getSortedAndFilteredImages = () => {
+    if (!gallery || !gallery.images) return [];
+
+    let filteredImages = [...gallery.images];
+
+    // Apply filter
+    if (filterLiked) {
+      filteredImages = filteredImages.filter((img) => img.likes > 0);
+    }
+
+    // Apply sort
+    return filteredImages.sort((a, b) => {
+      if (sortBy === "newest") {
+        return new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0);
+      } else if (sortBy === "oldest") {
+        return new Date(a.uploadedAt || 0) - new Date(b.uploadedAt || 0);
+      } else if (sortBy === "name") {
+        return (a.name || "").localeCompare(b.name || "");
+      } else if (sortBy === "likes") {
+        return (b.likes || 0) - (a.likes || 0);
+      }
+      return 0;
+    });
+  };
+
+  // Calculate total likes
+  const getTotalLikes = () => {
+    if (!gallery || !gallery.images) return 0;
+    return gallery.images.reduce((total, img) => total + (img.likes || 0), 0);
+  };
+
+  // Calculate total size
+  const getTotalSize = () => {
+    if (!gallery || !gallery.images) return 0;
+    const totalBytes = gallery.images.reduce(
+      (total, img) => total + (img.size || 0),
+      0
+    );
+    const totalMB = totalBytes / (1024 * 1024);
+    return totalMB.toFixed(2);
   };
 
   if (loading) {
     return (
       <div className="md:ml-64 flex justify-center items-center h-[calc(100vh-64px)]">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-purple-600 mx-auto mb-4" />
+          <p className="text-purple-300 animate-pulse">Cargando galería...</p>
+        </div>
       </div>
     );
   }
@@ -471,22 +635,25 @@ export default function GalleryDetail({ params }) {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Galeria no encontrada o no tienes permiso para verla.
+            Galería no encontrada o no tienes permiso para verla.
           </AlertDescription>
         </Alert>
         <Button
           className="mt-4"
           onClick={() => router.push("/dashboard/galleries")}
         >
-          Volver a Galerias
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Volver a Galerías
         </Button>
       </div>
     );
   }
 
+  const sortedImages = getSortedAndFilteredImages();
+
   return (
-    <div className="md:ml-64">
-      <div className="flex flex-col gap-6">
+    <div className="md:ml-64 p-6">
+      <div className="flex flex-col gap-6 max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Button
@@ -496,32 +663,122 @@ export default function GalleryDetail({ params }) {
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h1 className="text-2xl sm:text-3xl font-bold">{gallery.name}</h1>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold">{gallery.name}</h1>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                <Calendar className="h-3 w-3" />
+                <span>Creada el {formatDate(gallery.createdAt)}</span>
+                {gallery.password && (
+                  <Badge variant="outline" className="ml-2 text-xs">
+                    <Lock className="h-3 w-3 mr-1" />
+                    Protegida
+                  </Badge>
+                )}
+              </div>
+            </div>
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={copyGalleryLink}
-              className="gap-2"
-            >
-              <LinkIcon className="h-4 w-4" />
-              Copiar Link
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    onClick={copyGalleryLink}
+                    className="gap-2"
+                  >
+                    {linkCopied ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                        Copiado
+                      </>
+                    ) : (
+                      <>
+                        <LinkIcon className="h-4 w-4" />
+                        Copiar Link
+                      </>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Copiar enlace de la galería para compartir
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
             <Button
               onClick={() => router.push(`/dashboard/galleries/${id}/edit`)}
               className="bg-purple-600 hover:bg-purple-700"
             >
-              <Edit className="h-4 w-4" />
-              Editar Galeria
+              <Edit className="h-4 w-4 mr-2" />
+              Editar Galería
             </Button>
           </div>
         </div>
 
-        <Tabs defaultValue="images">
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {success && (
+          <Alert className="bg-green-500/10 text-green-500 border-green-500/20">
+            <Check className="h-4 w-4" />
+            <AlertDescription>{success}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Stats Cards */}
+        <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
+          <Card>
+            <CardContent className="p-4 flex flex-col items-center justify-center">
+              <div className="rounded-full bg-purple-100 p-2 dark:bg-purple-900/30 mb-2">
+                <ImageIcon className="h-5 w-5 text-purple-600" />
+              </div>
+              <div className="text-2xl font-bold">
+                {gallery.imageCount || 0}
+              </div>
+              <p className="text-xs text-muted-foreground">Imágenes</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 flex flex-col items-center justify-center">
+              <div className="rounded-full bg-purple-100 p-2 dark:bg-purple-900/30 mb-2">
+                <Heart className="h-5 w-5 text-purple-600" />
+              </div>
+              <div className="text-2xl font-bold">{getTotalLikes()}</div>
+              <p className="text-xs text-muted-foreground">Me gusta</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 flex flex-col items-center justify-center">
+              <div className="rounded-full bg-purple-100 p-2 dark:bg-purple-900/30 mb-2">
+                <Eye className="h-5 w-5 text-purple-600" />
+              </div>
+              <div className="text-2xl font-bold">{gallery.views || 0}</div>
+              <p className="text-xs text-muted-foreground">Vistas</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 flex flex-col items-center justify-center">
+              <div className="rounded-full bg-purple-100 p-2 dark:bg-purple-900/30 mb-2">
+                <FileText className="h-5 w-5 text-purple-600" />
+              </div>
+              <div className="text-2xl font-bold">{getTotalSize()} MB</div>
+              <p className="text-xs text-muted-foreground">Tamaño total</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Tabs defaultValue="images" className="w-full">
           <TabsList className="grid w-full grid-cols-2 sm:w-[400px]">
             <TabsTrigger value="images" className="flex items-center gap-2">
               <Grid className="h-4 w-4" />
-              Imagenes
+              Imágenes
             </TabsTrigger>
             <TabsTrigger value="details" className="flex items-center gap-2">
               <Info className="h-4 w-4" />
@@ -532,21 +789,83 @@ export default function GalleryDetail({ params }) {
           <TabsContent value="images" className="mt-4">
             <Card>
               <CardHeader>
-                <CardTitle>Galeria de Imagenes</CardTitle>
-                <CardDescription>
-                  {gallery.imageCount > 0
-                    ? `Esta galeria contiene ${gallery.imageCount} imagenes`
-                    : "Sube imagenes a esta galeria"}
-                </CardDescription>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <CardTitle>Galería de Imágenes</CardTitle>
+                    <CardDescription>
+                      {gallery.imageCount > 0
+                        ? `Esta galería contiene ${gallery.imageCount} imágenes`
+                        : "Sube imágenes a esta galería"}
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className={
+                              filterLiked
+                                ? "bg-purple-100 text-purple-700 border-purple-200"
+                                : ""
+                            }
+                            onClick={() => setFilterLiked(!filterLiked)}
+                          >
+                            <Heart className="h-4 w-4 mr-2" />
+                            {filterLiked ? "Todas" : "Con Me gusta"}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {filterLiked
+                            ? "Mostrar todas las imágenes"
+                            : "Mostrar solo imágenes con Me gusta"}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <SortAsc className="h-4 w-4 mr-2" />
+                          Ordenar
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setSortBy("newest")}>
+                          <Clock className="mr-2 h-4 w-4" />
+                          Más recientes primero
+                          {sortBy === "newest" && (
+                            <CheckCircle className="ml-2 h-4 w-4 text-green-500" />
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setSortBy("oldest")}>
+                          <Clock className="mr-2 h-4 w-4" />
+                          Más antiguas primero
+                          {sortBy === "oldest" && (
+                            <CheckCircle className="ml-2 h-4 w-4 text-green-500" />
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setSortBy("name")}>
+                          <FileText className="mr-2 h-4 w-4" />
+                          Ordenar por nombre
+                          {sortBy === "name" && (
+                            <CheckCircle className="ml-2 h-4 w-4 text-green-500" />
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setSortBy("likes")}>
+                          <Heart className="mr-2 h-4 w-4" />
+                          Más Me gusta primero
+                          {sortBy === "likes" && (
+                            <CheckCircle className="ml-2 h-4 w-4 text-green-500" />
+                          )}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                {error && (
-                  <Alert variant="destructive" className="mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
                 <div className="flex flex-col sm:flex-row gap-4 mb-6">
                   <div className="flex-1">
                     <Label htmlFor="file-upload" className="block mb-2">
@@ -589,10 +908,35 @@ export default function GalleryDetail({ params }) {
                   </div>
                 </div>
 
-                {gallery.images && gallery.images.length > 0 ? (
+                {uploading && (
+                  <div className="mb-6">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>Subiendo imágenes...</span>
+                      <span>
+                        {uploadCount.current} de {uploadCount.total}
+                      </span>
+                    </div>
+                    <Progress value={uploadProgress} className="h-2" />
+                  </div>
+                )}
+
+                {filterLiked && (
+                  <div className="mb-4">
+                    <Badge
+                      variant="outline"
+                      className="bg-purple-50 text-purple-700"
+                    >
+                      Mostrando solo imágenes con Me gusta (
+                      {sortedImages.length} de {gallery.images.length})
+                    </Badge>
+                  </div>
+                )}
+
+                {sortedImages.length > 0 ? (
                   <ImageGrid
-                    images={gallery.images}
+                    images={sortedImages}
                     onDelete={(index) => setDeleteImageIndex(index)}
+                    onDownload={handleDownloadImage}
                     selectedImages={selectedImages}
                     setSelectedImages={setSelectedImages}
                   />
@@ -600,15 +944,26 @@ export default function GalleryDetail({ params }) {
                   <div className="text-center py-12 border rounded-lg">
                     <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground" />
                     <h3 className="mt-4 text-lg font-medium">
-                      No hay imagenes
+                      No hay imágenes
                     </h3>
-                    <p className="text-muted-foreground">
-                      Sube imagenes para comenzar
+                    <p className="text-muted-foreground mb-4">
+                      {filterLiked
+                        ? "No hay imágenes con Me gusta. Cambia el filtro para ver todas las imágenes."
+                        : "Sube imágenes para comenzar"}
                     </p>
+                    {filterLiked && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setFilterLiked(false)}
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Quitar filtro
+                      </Button>
+                    )}
                   </div>
                 )}
               </CardContent>
-              {gallery.images && gallery.images.length > 0 && (
+              {sortedImages.length > 0 && (
                 <CardFooter className="flex justify-between">
                   {selectedImages.length > 0 ? (
                     <div className="flex gap-2">
@@ -618,24 +973,25 @@ export default function GalleryDetail({ params }) {
                         onClick={() => setDeleteImageIndex(selectedImages)}
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
-                        Borrar Seleccionados
+                        Borrar {selectedImages.length} seleccionadas
                       </Button>
                       <Button
                         variant="outline"
                         id="download-selected-button"
                         onClick={async () => {
                           await handleDownloadImage(
-                            selectedImages.map((index) => gallery.images[index])
+                            selectedImages.map((index) => sortedImages[index])
                           );
                         }}
                       >
                         <Download className="h-4 w-4 mr-2" />
-                        Descargar Seleccionados
+                        Descargar {selectedImages.length} seleccionadas
                       </Button>
                     </div>
                   ) : (
                     <p className="text-muted-foreground text-sm">
-                      Selecciona imagenes para borrar o descargar
+                      Selecciona imágenes para borrar o descargar.{" "}
+                      {sortedImages.length} imágenes disponibles.
                     </p>
                   )}
                 </CardFooter>
@@ -646,118 +1002,220 @@ export default function GalleryDetail({ params }) {
           <TabsContent value="details" className="mt-4">
             <Card>
               <CardHeader>
-                <CardTitle>Informacion de la Galeria</CardTitle>
+                <CardTitle>Información de la Galería</CardTitle>
                 <CardDescription>
-                  Ver y administrar detalles de la galeria
+                  Ver y administrar detalles de la galería
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-medium text-muted-foreground">
                       Nombre
                     </h3>
-                    <p className="text-lg">{gallery.name}</p>
+                    <p className="text-lg font-medium">{gallery.name}</p>
                   </div>
 
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                      Fecha de Creacion
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-medium text-muted-foreground">
+                      Fecha de Creación
                     </h3>
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <p>
-                        {gallery.createdAt
-                          ? new Date(
-                              gallery.createdAt.seconds * 1000
-                            ).toLocaleDateString()
-                          : "N/A"}
-                      </p>
+                      <Calendar className="h-4 w-4 text-purple-600" />
+                      <p>{formatDate(gallery.createdAt)}</p>
                     </div>
                   </div>
 
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                      Descripcion
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-medium text-muted-foreground">
+                      Descripción
                     </h3>
-                    <p>{gallery.description || "No description provided"}</p>
+                    <p>{gallery.description || "Sin descripción"}</p>
                   </div>
 
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                      Proteccion con contraseña
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-medium text-muted-foreground">
+                      Protección con contraseña
                     </h3>
                     <div className="flex items-center gap-2">
-                      <Lock className="h-4 w-4 text-muted-foreground" />
+                      <Lock className="h-4 w-4 text-purple-600" />
                       <p>{gallery.password ? "Habilitada" : "Deshabilitada"}</p>
+                      {gallery.password && (
+                        <Badge variant="outline" className="ml-2">
+                          ••••••••
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-6 pt-6 border-t">
-                  <h3 className="text-lg font-medium mb-2">
-                    Imagenes con Me Gusta
-                  </h3>
+                <Separator />
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium">
+                      Estadísticas de la Galería
+                    </h3>
+                    <Badge
+                      variant="outline"
+                      className="bg-purple-50 text-purple-700"
+                    >
+                      Última actualización: {formatDate(gallery.updatedAt)}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <Card>
+                      <CardContent className="p-4 flex items-center gap-4">
+                        <div className="rounded-full bg-purple-100 p-2 dark:bg-purple-900/30">
+                          <Eye className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">
+                            Vistas
+                          </p>
+                          <p className="text-2xl font-bold">
+                            {gallery.views || 0}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-4 flex items-center gap-4">
+                        <div className="rounded-full bg-purple-100 p-2 dark:bg-purple-900/30">
+                          <Heart className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">
+                            Me gusta
+                          </p>
+                          <p className="text-2xl font-bold">
+                            {getTotalLikes()}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-4 flex items-center gap-4">
+                        <div className="rounded-full bg-purple-100 p-2 dark:bg-purple-900/30">
+                          <Users className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">
+                            Visitantes
+                          </p>
+                          <p className="text-2xl font-bold">
+                            {gallery.uniqueVisitors?.length || 0}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Imágenes con Me Gusta</h3>
                   {gallery.images &&
                   gallery.images.some((img) => img.likes > 0) ? (
                     <>
-                      <div className="space-y-2 mb-4">
+                      <div className="space-y-2 mb-4 max-h-[300px] overflow-y-auto pr-2">
                         {gallery.images
                           .filter((img) => img.likes > 0)
+                          .sort((a, b) => b.likes - a.likes)
                           .map((img, index) => (
                             <div
                               key={index}
-                              className="flex items-center justify-between gap-2 p-2 border rounded-lg"
+                              className="flex items-center justify-between gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                             >
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm">{img.name}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  ({img.likes} likes)
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {img.likedBy
-                                    .map((likedBy) => likedBy)
-                                    .join(", ")}
-                                </span>
+                              <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded overflow-hidden bg-muted flex-shrink-0">
+                                  <img
+                                    src={getImageUrl(img) || "/placeholder.svg"}
+                                    alt={img.name}
+                                    className="h-full w-full object-cover"
+                                  />
+                                </div>
+                                <div>
+                                  <p className="font-medium truncate max-w-[200px]">
+                                    {img.name}
+                                  </p>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <div className="flex items-center">
+                                      <Heart className="h-3 w-3 mr-1 text-red-500" />
+                                      <span>{img.likes} me gusta</span>
+                                    </div>
+                                    {img.likedBy && img.likedBy.length > 0 && (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <div className="flex items-center cursor-help">
+                                              <Users className="h-3 w-3 mr-1" />
+                                              <span>
+                                                {img.likedBy.map((user) => user).join(", ")}
+                                              </span>
+                                            </div>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>{img.likedBy.join(", ")}</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
                                   navigator.clipboard.writeText(img.name);
+                                  setSuccess("Nombre copiado al portapapeles");
+                                  setTimeout(() => setSuccess(""), 2000);
                                 }}
                               >
-                                Copiar
+                                <Copy className="h-4 w-4" />
                               </Button>
                             </div>
                           ))}
                       </div>
                       <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            const likedImages = gallery.images
-                              .filter((img) => img.likes > 0)
-                              .map((img) => img.name)
-                              .join(", ");
-                            navigator.clipboard.writeText(likedImages);
-                          }}
-                        >
-                          Copiar Todos los Nombres
+                        <Button variant="outline" onClick={copyLikedImageNames}>
+                          {namesCopied ? (
+                            <>
+                              <Check className="h-4 w-4 mr-2" />
+                              Nombres Copiados
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-4 w-4 mr-2" />
+                              Copiar Todos los Nombres
+                            </>
+                          )}
                         </Button>
                       </div>
                     </>
                   ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No hay imagenes con Me Gusta todavia
-                    </p>
+                    <div className="text-center py-8 border rounded-lg">
+                      <Heart className="h-12 w-12 mx-auto text-muted-foreground" />
+                      <h3 className="mt-4 text-lg font-medium">
+                        No hay imágenes con Me Gusta todavía
+                      </h3>
+                      <p className="text-muted-foreground">
+                        Cuando tus clientes marquen imágenes con Me Gusta,
+                        aparecerán aquí
+                      </p>
+                    </div>
                   )}
                 </div>
 
-                <div className="mt-6 pt-6 border-t">
-                  <h3 className="text-lg font-medium mb-2">
-                    Enlace de la galeria
-                  </h3>
+                <Separator />
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Enlace de la galería</h3>
                   <div className="flex gap-2">
                     <Input
                       value={`${window.location.origin}/g/${id}`}
@@ -765,12 +1223,26 @@ export default function GalleryDetail({ params }) {
                       className="flex-1"
                     />
                     <Button variant="outline" onClick={copyGalleryLink}>
-                      Copiar
+                      {linkCopied ? (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Copiado
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copiar
+                        </>
+                      )}
                     </Button>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Comparte este enlace con tu cliente
-                  </p>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Share2 className="h-4 w-4" />
+                    <p>
+                      Comparte este enlace con tus clientes para que puedan ver
+                      la galería
+                    </p>
+                  </div>
                 </div>
               </CardContent>
               <CardFooter className="flex justify-end gap-2">
@@ -778,14 +1250,15 @@ export default function GalleryDetail({ params }) {
                   variant="outline"
                   onClick={() => router.push("/dashboard/galleries")}
                 >
-                  Regresar a las galerias
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Regresar a las galerías
                 </Button>
                 <Button
                   onClick={() => router.push(`/dashboard/galleries/${id}/edit`)}
                   className="bg-purple-600 hover:bg-purple-700"
                 >
                   <Edit className="h-4 w-4 mr-2" />
-                  Editar galeria
+                  Editar galería
                 </Button>
               </CardFooter>
             </Card>
@@ -799,13 +1272,15 @@ export default function GalleryDetail({ params }) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Estas seguro?</AlertDialogTitle>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta accion sera permanente y no podra ser deshecha.
+              {Array.isArray(deleteImageIndex)
+                ? `Estás a punto de eliminar ${deleteImageIndex.length} imágenes. Esta acción será permanente y no podrá ser deshecha.`
+                : "Esta acción será permanente y no podrá ser deshecha."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteImage}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
