@@ -11,6 +11,7 @@ import {
   query,
   where,
   getDocs,
+  serverTimestamp
 } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,11 +60,31 @@ export default function PublicGallery({ params }) {
         const galleryDoc = await getDoc(doc(db, "galleries", id));
 
         if (!galleryDoc.exists()) {
+          console.error(`Gallery with ID ${id} does not exist`);
           setError("Gallery not found");
           return;
         }
 
         const galleryData = { id: galleryDoc.id, ...galleryDoc.data() };
+        
+        // Debug logging for gallery data
+        console.log("Gallery data:", {
+          id: galleryData.id,
+          isPublic: galleryData.isPublic,
+          userId: galleryData.userId,
+          name: galleryData.name || 'No name',
+          images: galleryData.images ? galleryData.images.length : 'No images'
+        });
+
+        // Validate gallery data
+        if (!galleryData.isPublic) {
+          console.warn(`Gallery ${id} is not public`);
+        }
+
+        if (!galleryData.userId) {
+          console.error(`Gallery ${id} is missing userId`);
+        }
+
         setGallery(galleryData);
 
         // Fetch photographer's portfolio
@@ -79,7 +100,15 @@ export default function PublicGallery({ params }) {
             id: portfolioSnapshot.docs[0].id,
             ...portfolioSnapshot.docs[0].data(),
           };
+          console.log("Portfolio data:", {
+            id: portfolioData.id,
+            userId: portfolioData.userId,
+            isPublic: portfolioData.isPublic,
+            name: portfolioData.name || 'No name'
+          });
           setPortfolio(portfolioData);
+        } else {
+          console.log(`No public portfolio found for user ${galleryData.userId}`);
         }
 
         // If no password is required, set authenticated to true
@@ -100,7 +129,12 @@ export default function PublicGallery({ params }) {
         }
       } catch (error) {
         console.error("Error fetching gallery:", error);
-        setError("Failed to load gallery");
+        console.error("Error details:", {
+          code: error.code,
+          message: error.message,
+          stack: error.stack,
+        });
+        setError(`Failed to load gallery: ${error.message}`);
       } finally {
         setLoading(false);
       }
@@ -120,6 +154,18 @@ export default function PublicGallery({ params }) {
   };
 
   const handleToggleLike = async (imageIndex) => {
+    // Validate gallery and image existence
+    if (!gallery || !gallery.images || imageIndex < 0 || imageIndex >= gallery.images.length) {
+      console.error('Invalid gallery or image index');
+      return;
+    }
+
+    // Ensure gallery is public
+    if (!gallery.isPublic) {
+      alert('Esta galería no está disponible para Me Gusta.');
+      return;
+    }
+
     if (!email) {
       setTempImageIndex(imageIndex);
       setShowEmailDialog(true);
@@ -136,7 +182,7 @@ export default function PublicGallery({ params }) {
 
       try {
         const updatedImage = { ...gallery.images[imageIndex] };
-        updatedImage.likes = (updatedImage.likes || 0) - 1;
+        updatedImage.likes = Math.max((updatedImage.likes || 0) - 1, 0);
 
         // Remove email from likedBy array
         updatedImage.likedBy = (updatedImage.likedBy || []).filter(
@@ -148,12 +194,23 @@ export default function PublicGallery({ params }) {
 
         await updateDoc(doc(db, "galleries", id), {
           images: updatedImages,
+          updatedAt: serverTimestamp()
         });
 
         const updatedGallery = { ...gallery, images: updatedImages };
         setGallery(updatedGallery);
       } catch (error) {
         console.error("Error updating likes:", error);
+        
+        // Provide more user-friendly error handling
+        if (error.code === 'permission-denied') {
+          alert('No se puede actualizar los Me Gusta. Verifica que la galería sea pública.');
+        } else {
+          alert('Hubo un error al actualizar los Me Gusta. Por favor, intenta de nuevo.');
+        }
+        
+        // Revert the like state
+        setLikedImages(likedImages);
       }
     } else {
       // Like
@@ -163,20 +220,33 @@ export default function PublicGallery({ params }) {
         const updatedImage = { ...gallery.images[imageIndex] };
         updatedImage.likes = (updatedImage.likes || 0) + 1;
 
-        // Add email to likedBy array
-        updatedImage.likedBy = [...(updatedImage.likedBy || []), email];
+        // Add email to likedBy array, preventing duplicates
+        const likedBySet = new Set(updatedImage.likedBy || []);
+        likedBySet.add(email);
+        updatedImage.likedBy = Array.from(likedBySet);
 
         const updatedImages = [...gallery.images];
         updatedImages[imageIndex] = updatedImage;
 
         await updateDoc(doc(db, "galleries", id), {
           images: updatedImages,
+          updatedAt: serverTimestamp()
         });
 
         const updatedGallery = { ...gallery, images: updatedImages };
         setGallery(updatedGallery);
       } catch (error) {
         console.error("Error updating likes:", error);
+        
+        // Provide more user-friendly error handling
+        if (error.code === 'permission-denied') {
+          alert('No se puede actualizar los Me Gusta. Verifica que la galería sea pública.');
+        } else {
+          alert('Hubo un error al actualizar los Me Gusta. Por favor, intenta de nuevo.');
+        }
+        
+        // Revert the like state
+        setLikedImages(likedImages);
       }
     }
 

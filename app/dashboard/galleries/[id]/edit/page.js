@@ -30,6 +30,7 @@ export default function EditGallery({ params }) {
     description: "",
     password: "",
     isPasswordProtected: false,
+    isPublic: false,
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -60,6 +61,7 @@ export default function EditGallery({ params }) {
           description: galleryData.description || "",
           password: galleryData.password || "",
           isPasswordProtected: !!galleryData.password,
+          isPublic: galleryData.isPublic || false,
         });
       } catch (error) {
         console.error("Error fetching gallery:", error);
@@ -105,6 +107,7 @@ export default function EditGallery({ params }) {
         name: formData.name.trim(),
         description: formData.description.trim(),
         password: formData.isPasswordProtected ? formData.password.trim() : null,
+        isPublic: formData.isPublic,
         updatedAt: serverTimestamp(),
       });
 
@@ -207,6 +210,22 @@ export default function EditGallery({ params }) {
                     </p>
                   </div>
                 )}
+
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="isPublic">
+                    Galería Pública
+                  </Label>
+                  <Switch
+                    id="isPublic"
+                    checked={formData.isPublic}
+                    onCheckedChange={(checked) => {
+                      setFormData((prev) => ({ ...prev, isPublic: checked }));
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Las galerías públicas pueden ser accedidas por cualquiera con el enlace
+                </p>
               </div>
 
               <div className="flex justify-end gap-2">
