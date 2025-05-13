@@ -270,11 +270,11 @@ export function ClientGalleryView({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-black to-purple-900/20">
+    <div className="min-h-screen bg-gradient-to-b from-black via-purple-900/10 to-purple-900/20">
       {/* Cover Image Section */}
       {gallery.coverImage && (
-        <div className="relative w-full h-[45vh] md:h-[60vh] overflow-hidden">
-          <div className="absolute inset-0 bg-black/50 z-10"></div>
+        <div className="relative w-full h-[45vh] md:h-[65vh] overflow-hidden">
+          <div className="absolute inset-0 bg-black/20 z-10"></div>
           <img
             src={getImageUrl({
               driveId: gallery.coverImage,
@@ -282,7 +282,7 @@ export function ClientGalleryView({
             alt={gallery.name || "Gallery Cover"}
             className="w-full h-full object-cover object-center"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent z-10"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent z-10"></div>
 
           {/* Gallery Info Overlay */}
           <div className="absolute inset-0 flex items-center justify-center z-20">

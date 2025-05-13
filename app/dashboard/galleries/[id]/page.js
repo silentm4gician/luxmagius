@@ -47,6 +47,7 @@ import {
   Clock,
   FileText,
   Users,
+  EyeIcon,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -80,6 +81,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import getImageUrl from "@/hooks/useImageUrl";
+import Link from "next/link";
 
 export default function GalleryDetail({ params }) {
   const { id } = React.use(params);
@@ -704,6 +706,13 @@ export default function GalleryDetail({ params }) {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+
+            <Link href={`/g/${id}`} target="_blank">
+              <Button className="border hover:bg-gray-400/20 bg-transparent">
+                <EyeIcon className="h-4 w-4 mr-2" />
+                Vista Previa
+              </Button>
+            </Link>
 
             <Button
               onClick={() => router.push(`/dashboard/galleries/${id}/edit`)}

@@ -601,14 +601,16 @@ export default function PublicPortfolio({ params }) {
             </div>
           </div>
           <Separator className="my-1" />
-          <span className="text-gray-500 text-sm mt-1 text-center">
-            Powered by{" "}
-            <Link href="/">
-              <span className="font-bold hover:text-purple-600 transition-colors duration-300">
-                Luxmagius
-              </span>
-            </Link>
-          </span>
+          <div className="flex items-center justify-center">
+            <span className="text-gray-500 text-sm mt-1 text-center">
+              Powered by{" "}
+              <Link href="/">
+                <span className="font-bold hover:text-purple-600 transition-colors duration-300">
+                  Luxmagius
+                </span>
+              </Link>
+            </span>
+          </div>
         </div>
       </footer>
     </div>
