@@ -243,7 +243,7 @@ export default function Dashboard() {
             </div>
 
             {/* Storage Usage */}
-            <Card>
+            {/* <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Uso de Almacenamiento</CardTitle>
                 <CardDescription>
@@ -266,9 +266,9 @@ export default function Dashboard() {
                   </span>
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
 
-            <div className="grid gap-6 lg:grid-cols-3">
+            <div className="grid gap-6 lg:grid-cols-2">
               {/* Recent Galleries */}
               <Card className="lg:col-span-2">
                 <CardHeader className="flex flex-row items-center justify-between">
@@ -371,7 +371,7 @@ export default function Dashboard() {
               </Card>
 
               {/* Popular Galleries */}
-              <Card>
+              {/* <Card>
                 <CardHeader>
                   <CardTitle>Galerías Populares</CardTitle>
                   <CardDescription>
@@ -419,7 +419,7 @@ export default function Dashboard() {
                     </div>
                   )}
                 </CardContent>
-              </Card>
+              </Card> */}
             </div>
 
             {/* Quick Access */}

@@ -9,7 +9,7 @@ export const metadata = {
   title: "Luxmagius",
   description: "La mejor plataforma web para compartir fotos con tus clientes",
   icons: {
-    icon: "/mismagiusLogo.png",
+    icon: "/luxmagius.png",
   },
 };
 

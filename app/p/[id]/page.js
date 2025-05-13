@@ -32,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import getImageUrl from "@/hooks/useImageUrl";
 import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
 
 export default function PublicPortfolio({ params }) {
   const { id } = React.use(params);
@@ -599,6 +600,15 @@ export default function PublicPortfolio({ params }) {
               )}
             </div>
           </div>
+          <Separator className="my-1" />
+          <span className="text-gray-500 text-sm mt-1 text-center">
+            Powered by{" "}
+            <Link href="/">
+              <span className="font-bold hover:text-purple-600 transition-colors duration-300">
+                Luxmagius
+              </span>
+            </Link>
+          </span>
         </div>
       </footer>
     </div>

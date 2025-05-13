@@ -98,7 +98,7 @@ export function DashboardNav({ user, onLogout }) {
       <div className="md:hidden flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2">
           <div className="size-12 rounded-full">
-            <Image src="/mismagiusLogo.png" alt="Logo" width={50} height={50} />
+            <Image src="/luxmagius.png" alt="Logo" width={50} height={50} />
           </div>
           <h1 className="text-xl font-bold">Luxmagius</h1>
         </div>
@@ -127,7 +127,7 @@ export function DashboardNav({ user, onLogout }) {
           <div className="px-4 py-2 flex items-center gap-2 mb-6">
             <div className="size-14 rounded-full">
               <Image
-                src="/mismagiusLogo.png"
+                src="/luxmagius.png"
                 alt="Logo"
                 width={80}
                 height={80}

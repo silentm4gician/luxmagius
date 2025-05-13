@@ -872,7 +872,7 @@ export default function GalleryDetail({ params }) {
                       Subir desde tu dispositivo
                     </Label>
                     <div className="flex gap-2">
-                      <Input
+                      {/* <Input
                         id="file-upload"
                         type="file"
                         multiple
@@ -880,8 +880,14 @@ export default function GalleryDetail({ params }) {
                         onChange={handleFileUpload}
                         disabled={uploading}
                         className="flex-1"
+                      /> */}
+                      <Input
+                        placeholder="Proximamente..."
+                        disabled
+                        type="text"
+                        className="flex-1"
                       />
-                      <Button
+                      {/* <Button
                         onClick={() =>
                           document.getElementById("file-upload").click()
                         }
@@ -893,7 +899,7 @@ export default function GalleryDetail({ params }) {
                         ) : (
                           <Upload className="h-4 w-4" />
                         )}
-                      </Button>
+                      </Button> */}
                     </div>
                   </div>
 
@@ -935,7 +941,24 @@ export default function GalleryDetail({ params }) {
                 {sortedImages.length > 0 ? (
                   <ImageGrid
                     images={sortedImages}
-                    onDelete={(index) => setDeleteImageIndex(index)}
+                    onDelete={(indexFromSorted) => {
+                      // Get the specific image object from the sorted/filtered array
+                      const imageToDelete = sortedImages[indexFromSorted];
+                      // Find the index of this *exact* image object in the original gallery.images array
+                      const originalIndex = gallery.images.findIndex(
+                        (img) => img.url === imageToDelete.url // Assuming URL is unique identifier
+                        // If URL isn't guaranteed unique, you might need a different identifier like driveId or compare the objects directly
+                        // (img) => img === imageToDelete
+                      );
+                      if (originalIndex !== -1) {
+                        setDeleteImageIndex(originalIndex); // Set the index from the original array
+                      } else {
+                        console.error(
+                          "Could not find image in original gallery array for deletion."
+                        );
+                        // Handle error appropriately - maybe show a message to the user
+                      }
+                    }}
                     onDownload={handleDownloadImage}
                     selectedImages={selectedImages}
                     setSelectedImages={setSelectedImages}
@@ -970,7 +993,49 @@ export default function GalleryDetail({ params }) {
                       <Button
                         variant="outline"
                         className="text-red-600"
-                        onClick={() => setDeleteImageIndex(selectedImages)}
+                        onClick={() => {
+                          const originalIndicesToDelete = selectedImages
+                            .map((selectedIndex) => {
+                              const imageToDelete = sortedImages[selectedIndex];
+                              if (!imageToDelete) return -1; // Should not happen, but safeguard
+                              return gallery.images.findIndex(
+                                (img) => img.url === imageToDelete.url // Or use another unique identifier
+                                // (img) => img === imageToDelete
+                              );
+                            })
+                            .filter((index) => index !== -1); // Filter out any not found indices
+
+                          if (
+                            originalIndicesToDelete.length !==
+                            selectedImages.length
+                          ) {
+                            console.error(
+                              "Some selected images could not be found in the original gallery array for deletion."
+                            );
+                            setError(
+                              "Error al preparar imágenes para eliminar. Algunas imágenes seleccionadas no se encontraron."
+                            );
+                            // Optionally clear selectedImages here or handle differently
+                          }
+
+                          // Only proceed if we found all original indices
+                          if (
+                            originalIndicesToDelete.length > 0 &&
+                            originalIndicesToDelete.length ===
+                              selectedImages.length
+                          ) {
+                            setDeleteImageIndex(originalIndicesToDelete);
+                          } else if (
+                            originalIndicesToDelete.length === 0 &&
+                            selectedImages.length > 0
+                          ) {
+                            // Handle case where no images could be mapped (edge case)
+                            setError(
+                              "No se pudieron encontrar las imágenes seleccionadas para eliminar."
+                            );
+                          }
+                          // If lengths don't match and error was already set, do nothing more
+                        }}
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Borrar {selectedImages.length} seleccionadas
@@ -1155,7 +1220,9 @@ export default function GalleryDetail({ params }) {
                                             <div className="flex items-center cursor-help">
                                               <Users className="h-3 w-3 mr-1" />
                                               <span>
-                                                {img.likedBy.map((user) => user).join(", ")}
+                                                {img.likedBy
+                                                  .map((user) => user)
+                                                  .join(", ")}
                                               </span>
                                             </div>
                                           </TooltipTrigger>

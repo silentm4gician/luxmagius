@@ -11,7 +11,7 @@ import {
   query,
   where,
   getDocs,
-  serverTimestamp
+  serverTimestamp,
 } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import Link from "next/link";
+import Footer from "@/components/Footer";
 
 export default function PublicGallery({ params }) {
   const { id } = React.use(params);
@@ -66,15 +67,6 @@ export default function PublicGallery({ params }) {
         }
 
         const galleryData = { id: galleryDoc.id, ...galleryDoc.data() };
-        
-        // Debug logging for gallery data
-        console.log("Gallery data:", {
-          id: galleryData.id,
-          isPublic: galleryData.isPublic,
-          userId: galleryData.userId,
-          name: galleryData.name || 'No name',
-          images: galleryData.images ? galleryData.images.length : 'No images'
-        });
 
         // Validate gallery data
         if (!galleryData.isPublic) {
@@ -102,13 +94,12 @@ export default function PublicGallery({ params }) {
           };
           console.log("Portfolio data:", {
             id: portfolioData.id,
-            userId: portfolioData.userId,
             isPublic: portfolioData.isPublic,
-            name: portfolioData.name || 'No name'
+            name: portfolioData.name || "No name",
           });
           setPortfolio(portfolioData);
         } else {
-          console.log(`No public portfolio found for user ${galleryData.userId}`);
+          console.log(`No public portfolio found for user id`);
         }
 
         // If no password is required, set authenticated to true
@@ -155,14 +146,19 @@ export default function PublicGallery({ params }) {
 
   const handleToggleLike = async (imageIndex) => {
     // Validate gallery and image existence
-    if (!gallery || !gallery.images || imageIndex < 0 || imageIndex >= gallery.images.length) {
-      console.error('Invalid gallery or image index');
+    if (
+      !gallery ||
+      !gallery.images ||
+      imageIndex < 0 ||
+      imageIndex >= gallery.images.length
+    ) {
+      console.error("Invalid gallery or image index");
       return;
     }
 
     // Ensure gallery is public
     if (!gallery.isPublic) {
-      alert('Esta galería no está disponible para Me Gusta.');
+      alert("Esta galería no está disponible para Me Gusta.");
       return;
     }
 
@@ -194,21 +190,25 @@ export default function PublicGallery({ params }) {
 
         await updateDoc(doc(db, "galleries", id), {
           images: updatedImages,
-          updatedAt: serverTimestamp()
+          updatedAt: serverTimestamp(),
         });
 
         const updatedGallery = { ...gallery, images: updatedImages };
         setGallery(updatedGallery);
       } catch (error) {
         console.error("Error updating likes:", error);
-        
+
         // Provide more user-friendly error handling
-        if (error.code === 'permission-denied') {
-          alert('No se puede actualizar los Me Gusta. Verifica que la galería sea pública.');
+        if (error.code === "permission-denied") {
+          alert(
+            "No se puede actualizar los Me Gusta. Verifica que la galería sea pública."
+          );
         } else {
-          alert('Hubo un error al actualizar los Me Gusta. Por favor, intenta de nuevo.');
+          alert(
+            "Hubo un error al actualizar los Me Gusta. Por favor, intenta de nuevo."
+          );
         }
-        
+
         // Revert the like state
         setLikedImages(likedImages);
       }
@@ -218,11 +218,14 @@ export default function PublicGallery({ params }) {
 
       try {
         const updatedImage = { ...gallery.images[imageIndex] };
-        updatedImage.likes = (updatedImage.likes || 0) + 1;
 
         // Add email to likedBy array, preventing duplicates
         const likedBySet = new Set(updatedImage.likedBy || []);
-        likedBySet.add(email);
+        // Only increment likes if the user hasn't liked the image before
+        if (!likedBySet.has(email)) {
+          updatedImage.likes = (updatedImage.likes || 0) + 1;
+        }
+        likedBySet.add(email); // Add email regardless, Set handles duplicates
         updatedImage.likedBy = Array.from(likedBySet);
 
         const updatedImages = [...gallery.images];
@@ -230,21 +233,25 @@ export default function PublicGallery({ params }) {
 
         await updateDoc(doc(db, "galleries", id), {
           images: updatedImages,
-          updatedAt: serverTimestamp()
+          updatedAt: serverTimestamp(),
         });
 
         const updatedGallery = { ...gallery, images: updatedImages };
         setGallery(updatedGallery);
       } catch (error) {
         console.error("Error updating likes:", error);
-        
+
         // Provide more user-friendly error handling
-        if (error.code === 'permission-denied') {
-          alert('No se puede actualizar los Me Gusta. Verifica que la galería sea pública.');
+        if (error.code === "permission-denied") {
+          alert(
+            "No se puede actualizar los Me Gusta. Verifica que la galería sea pública."
+          );
         } else {
-          alert('Hubo un error al actualizar los Me Gusta. Por favor, intenta de nuevo.');
+          alert(
+            "Hubo un error al actualizar los Me Gusta. Por favor, intenta de nuevo."
+          );
         }
-        
+
         // Revert the like state
         setLikedImages(likedImages);
       }
@@ -398,6 +405,8 @@ export default function PublicGallery({ params }) {
           </form>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Footer />
     </>
   );
 }
