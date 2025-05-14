@@ -161,7 +161,7 @@ export default function PublicPortfolio({ params }) {
       <div className="relative w-full h-[50vh] md:h-[60vh] overflow-hidden">
         {portfolio.coverImage ? (
           <>
-            <div className="absolute inset-0 bg-black/60 z-10"></div>
+            <div className="absolute inset-0 bg-black/10 z-10"></div>
             <img
               src={portfolio.coverImage || "/placeholder.svg"}
               alt={portfolio.title}
@@ -172,7 +172,7 @@ export default function PublicPortfolio({ params }) {
           <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-purple-900"></div>
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent z-10"></div>
 
         {/* Portfolio Info Overlay */}
         <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10 z-20">
