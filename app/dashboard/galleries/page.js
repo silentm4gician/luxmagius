@@ -331,12 +331,7 @@ export default function Galleries() {
                     className="overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-200"
                   >
                     <CardHeader className="p-0 flex-shrink-0">
-                      <div
-                        className="h-[180px] bg-muted relative cursor-pointer"
-                        onClick={() =>
-                          router.push(`/dashboard/galleries/${gallery.id}`)
-                        }
-                      >
+                      <div className="h-[180px] bg-muted relative cursor-pointer">
                         {gallery.images && gallery.images.length > 0 ? (
                           <img
                             src={
@@ -351,7 +346,12 @@ export default function Galleries() {
                             <ImageIcon className="h-12 w-12 text-purple-600/50" />
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity" />
+                        <div
+                          className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity"
+                          onClick={() =>
+                            router.push(`/dashboard/galleries/${gallery.id}`)
+                          }
+                        />
                         <div className="absolute top-2 right-2">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>

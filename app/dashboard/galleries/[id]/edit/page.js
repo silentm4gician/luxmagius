@@ -561,36 +561,38 @@ export default function EditGallery() {
                           <EyeOff className="h-4 w-4 text-amber-600" />
                         )}
                         <span>
-                          Esta galería{" "}
-                          {formData.isPublic ? "es pública" : "no es pública"} y{" "}
-                          {formData.isPublic ? "aparecerá" : "no aparecerá"} en
-                          la página principal.
+                          {formData.isPublic
+                            ? "Publica"
+                            : "Privada, Sólo visible para ti."}
                         </span>
                       </li>
-                      <li className="flex items-center gap-2">
-                        {formData.isPasswordProtected ? (
-                          <Lock className="h-4 w-4 text-amber-600" />
-                        ) : (
-                          <Unlock className="h-4 w-4 text-green-600" />
-                        )}
-                        <span>
-                          El acceso a las fotos{" "}
-                          {formData.isPasswordProtected
-                            ? "está protegido con contraseña"
-                            : "no requiere contraseña"}
-                          .
-                        </span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <Eye className="h-4 w-4 text-purple-600" />
-                        <span>
-                          Cualquier persona con el enlace{" "}
-                          {formData.isPasswordProtected
-                            ? "y la contraseña "
-                            : ""}
-                          podrá ver esta galería.
-                        </span>
-                      </li>
+
+                      {formData.isPublic ? (
+                        <>
+                          <li className="flex items-center gap-2">
+                            {formData.isPasswordProtected ? (
+                              <Lock className="h-4 w-4 text-amber-600" />
+                            ) : (
+                              <Unlock className="h-4 w-4 text-green-600" />
+                            )}
+                            <span>
+                              El acceso a las fotos{" "}
+                              {formData.isPasswordProtected
+                                ? "está protegido con contraseña"
+                                : "no requiere contraseña"}
+                              .
+                            </span>
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <Eye className="h-4 w-4 text-purple-600" />
+                            <span>
+                              {formData.isPasswordProtected
+                                ? "Cualquier persona con el enlace y la contraseña podrá ver esta galería"
+                                : "Cualquier persona con el enlace podrá ver esta galería"}
+                            </span>
+                          </li>
+                        </>
+                      ) : null}
                     </ul>
                   </div>
                 </CardContent>
